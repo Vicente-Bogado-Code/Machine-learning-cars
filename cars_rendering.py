@@ -1,29 +1,35 @@
 import pygame
 import math
-
+from cars_neuronal_network import generate_weigths, forward_pass
+from draw_tracks import track_A
 """
 IN THIS FILE:
 -Car rendering: A class that handles car creation(position, angle, colors, steering) 
 -Raycast: this file has a function in it that cast raycast in all 5 directions needed to EACH car created using "newCars()" that will later be used as inputs for the car learning. It handles raycast rotation while the car turns and only detects wall collision with walls created using "draw_wall()"
+-Connection to the car brain: this file is considered the main file, in it are called all the functions that handle the learning.
 """
 pygame.init()
 screen = pygame.display.set_mode((1600, 1000))
 clock = pygame.time.Clock()
 running = True
 dt = 0 
+max_possible_ray_distance = math.sqrt(screen.get_width()**2 + screen.get_height()**2)
 
 #Class to create cars
 class newCars():
         def __init__(self,x,y):
             self.x = x
             self.y = y
+            #Generate the random weights
+            self.w1,self.w2 = generate_weigths()
+            self.output = []
             self.width = 30
             self.height = 50
             self.velocity = 2
             self.surface = pygame.Surface((self.width, self.height))
             self.surface.set_colorkey("black")
             self.surface.fill("red")
-            #Some windows and lights to make the front of the car easier to spot
+            #Some details to make the front of the car easier to spot
             pygame.draw.rect(self.surface, "yellow", (self.width - 25, self.height - 6, 5, self.height - 40))
             pygame.draw.rect(self.surface, "yellow", (self.width - 10, self.height - 6, 5, self.height - 40))
             pygame.draw.rect(self.surface, "blue", (self.width - 4, self.height - 34, 3, self.height - 25))
@@ -34,10 +40,6 @@ class newCars():
             rotated_car = rotated_surface.get_rect(center=(self.x,self.y))
             screen.blit(rotated_surface,rotated_car)
 
-#function to create walls
-def draw_wall(screen, color, pos_x, pos_y, width, height, wall_list):
-    wall = pygame.draw.rect(screen, color, (pos_x, pos_y, width, height))
-    wall_list.append(wall)
 #Cars population
 cars = [
     newCars(screen.get_width() / 2, 100),
@@ -51,21 +53,11 @@ while running:
     screen.fill("gray")
     pygame.display.set_caption('Machine learning cars')
 
+    """
+    The next part is for building the tracks from draw_tracks.py
+    """
     walls = []
-    """
-    The next part is for creating walls objects for debug purposes
-    """
-    for i in range(2):
-        # Vertical
-        change_x = screen.get_width() / 2 - 300 if i == 1 else screen.get_width() / 2 + 300
-        draw_wall(screen, "black", change_x, 100, 10, 300, walls)
-        # Horizontal
-        change_y = 600 if i == 1 else 25
-        draw_wall(screen, "black", screen.get_width() / 2 - 300, change_y, 600, 10, walls)
-    # Additional walls
-    draw_wall(screen, "black", screen.get_width() / 2 + 600, 450, 10, 100, walls)
-    draw_wall(screen, "black", screen.get_width() / 2 - 600, 450, 10, 50, walls)
-
+    track_A(screen,walls)
     """
     This next part is going to handle raycasts and car angles, so the car always move where the front of it is looking and the raycast too.
     Also built the collide detection at the very end of it.
@@ -80,7 +72,9 @@ while running:
             ray_y += stepY
             if ray_y >= screen.get_height() or ray_y <= 0 or ray_x >= screen.get_width() or ray_x <= 0:
                 break 
-        return ray_x,ray_y
+        input_distance = math.sqrt((start_x - ray_x)**2 + (start_y - ray_y )**2)
+        normalized_distance = input_distance / max_possible_ray_distance
+        return ray_x,ray_y, normalized_distance
     keys = pygame.key.get_pressed()
     for car in cars: 
         """
@@ -124,23 +118,28 @@ while running:
         left_stepX, left_stepY = get_ray_angle(-90,2)
         dright_stepX, dright_stepY = get_ray_angle(-45,2)
         dleft_stepX, dleft_stepY = get_ray_angle(45,2)
+
+    #First two variables are the raycast X and Y end point and the third variable is the distance from that raycast start point to the it's end point (a wall):
     #Front ray
-        fx, fy = cast_ray(start_x, start_y, front_stepX,front_stepY, walls, screen)
+        fx, fy,fd = cast_ray(start_x, start_y, front_stepX,front_stepY, walls, screen)
     # Right Ray
-        rx, ry = cast_ray(start_x, start_y, right_stepX, right_stepY, walls, screen)
+        rx, ry,rd = cast_ray(start_x, start_y, right_stepX, right_stepY, walls, screen)
     # Left Ray
-        lx, ly = cast_ray(start_x, start_y, left_stepX, left_stepY, walls, screen)
+        lx, ly,ld = cast_ray(start_x, start_y, left_stepX, left_stepY, walls, screen)
     #From front, left rotated raycast:
-        lrx, lry = cast_ray(start_x, start_y,dleft_stepX,dleft_stepY,walls,screen)
+        lrx, lry,lrd = cast_ray(start_x, start_y,dleft_stepX,dleft_stepY,walls,screen)
     #From front, right rotated ray:
-        rrx, rry = cast_ray(start_x, start_y,dright_stepX,dright_stepY,walls,screen)
-    #Draw them for debug
+        rrx, rry, rrd = cast_ray(start_x, start_y,dright_stepX,dright_stepY,walls,screen)
+        input_neurons_values = [fd,rd,ld,lrd,rrd]
+    #Draw them for debuginput_neurons_values
         pygame.draw.line(screen, "green", (start_x, start_y), (fx,fy))
         pygame.draw.line(screen, "green", (start_x, start_y), (rx,ry))
         pygame.draw.line(screen, "green", (start_x, start_y), (lx,ly))
         pygame.draw.line(screen, "green", (start_x, start_y), (lrx,lry))
         pygame.draw.line(screen, "green", (start_x, start_y), (rrx,rry))
-
+    #Now we'll call the forward pass function with the values that we now have
+    car.output = forward_pass(input_neurons_values,car.w1,car.w2)
+    print(car.output)
 
 
 
