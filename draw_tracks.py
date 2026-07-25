@@ -1,4 +1,7 @@
 import pygame
+"""
+IN THIS FILE: this file exists just to create racing tracks, just import the track_letter and call it in cars_rendering.py.
+"""
 #function to create walls, used only in draw_tracks.py
 def draw_wall(screen, color, pos_x, pos_y, width, height, wall_list):
     wall = pygame.draw.rect(screen, color, (pos_x, pos_y, width, height))
