@@ -9,7 +9,6 @@ IN THIS FILE:
 -Raycast: this file has a function in it that cast raycast in all 5 directions needed to EACH car created using "newCars()" that will later be used as inputs for the car learning. It handles raycast rotation while the car turns and only detects wall collision with walls created using "draw_wall()"
 -Connection to the car brain: this file is considered the main file, in it are called all the functions that handle the learning.
 """
-#Class to create cars
 print("----------------------")
 print(">")
 print(">")
@@ -82,7 +81,6 @@ while running:
     screen.blit(text_surface, (1240, 900))
     """
     This next part is going to handle raycasts and car angles, so the car always move where the front of it is looking and the raycast too.
-    Also built the collide detection at the very end of it.
     """
     for car in cars:
         car.draw(screen)
@@ -142,7 +140,7 @@ while running:
              stepY = math.sin(ray_to_radians) * ray_speed 
              return stepX, stepY
         """
-        Next part is all about calculating the angle of the raycast, shooting it using the function for it and then draw them
+        Next part is all about calculating the angle of the raycast and shooting it using cast_ray()
         """
         front_stepX, front_stepY = get_ray_angle(0,2)
         right_stepX, right_stepY = get_ray_angle(90,2)
