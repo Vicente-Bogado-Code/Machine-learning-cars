@@ -77,7 +77,10 @@ while running:
     """
     walls = []
     track_A(screen,walls)
-    gen_text = text_surface = font.render(f"Generation: {generation}", True, "black")
+    text_surface = font.render(f"Generation: {generation}", True, "black")
+    text_surface_tip = font.render("Be patient, they ALWAYS learn!", True, "black")
+    if generation > 50:
+        screen.blit(text_surface_tip,(5,900))
     screen.blit(text_surface, (1240, 900))
     """
     This next part is going to handle raycasts and car angles, so the car always move where the front of it is looking and the raycast too.
