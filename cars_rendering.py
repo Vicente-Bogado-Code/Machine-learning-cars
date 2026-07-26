@@ -9,6 +9,14 @@ IN THIS FILE:
 -Raycast: this file has a function in it that cast raycast in all 5 directions needed to EACH car created using "newCars()" that will later be used as inputs for the car learning. It handles raycast rotation while the car turns and only detects wall collision with walls created using "draw_wall()"
 -Connection to the car brain: this file is considered the main file, in it are called all the functions that handle the learning.
 """
+#Class to create cars
+print("----------------------")
+print(">")
+print(">")
+input("--Press enter to start > ")
+
+
+    
 
 pygame.init()
 font = pygame.font.Font(None, 36)  # None = default font, 36 = size
@@ -18,16 +26,6 @@ running = True
 dt = 0 
 max_possible_ray_distance = math.sqrt(screen.get_width()**2 + screen.get_height()**2)
 
-#Class to create cars
-print("----------------------")
-print(">")
-print(">")
-model = input("--Type 'A' if you wish to see the cars learn to finish the race track, or type 'B' if you wish to use a pre-trained model > ").lower()
-if model == "a" or model == "b":
-    print("--Go back to the pygame window to watch the cars.")
-else:
-    print("--Input not recognized, using model B, close the window and start the file again if you wish to change the model")
-    print("--Go back to the pygame window to watch the cars.")
 class newCars():
         def __init__(self,x,y,color):
             self.x = x
@@ -35,11 +33,9 @@ class newCars():
             self.originalX = x
             self.originalY = y
             self.dead = False
-            #Set the weights to the pre-trained ones OR generate the random weights for learning
-            if model == "b":
-                self.w1, self.w2 = pre_trained_model()
-            elif model == "a":
-                self.w1,self.w2 = generate_weigths()
+            #Generate random weights 
+            self.w1,self.w2 = generate_weigths()
+            #self.w1, self.w2 = pre_trained_model()
             self.output = [0,0]
             self.width = 30
             self.height = 50
@@ -58,22 +54,17 @@ class newCars():
             screen.blit(rotated_surface,rotated_car)
 
 #Cars population
-if model == "a":
-    cars = [
+cars = [
         newCars(60, 200,"red"),
         newCars(90,200,"blue"),
-        newCars(130,200,"green"),
-        newCars(170,200,"purple"),
-        newCars(180,200,"orange"),
-        newCars(75,200,"pink")
-    ]
-else:
-    cars = [
-        newCars(130,200,"blue")
-    ]
+        newCars(130,200,"purple"),
+        newCars(170,200,"orange"),
+        newCars(180,200,"gray30"),
+        newCars(75,200,"darkblue")
+]
 cars_crashed = 0
 #Start game loop
-generation = 1 if model == "a" else "using pre-trained"
+generation = 1
 while running:
     dt = clock.tick(60) / 1000.0 
     for event in pygame.event.get():
@@ -87,7 +78,7 @@ while running:
     """
     walls = []
     track_A(screen,walls)
-    text_surface = font.render(f"Generation: {generation}", True, "black")
+    gen_text = text_surface = font.render(f"Generation: {generation}", True, "black")
     screen.blit(text_surface, (1240, 900))
     """
     This next part is going to handle raycasts and car angles, so the car always move where the front of it is looking and the raycast too.
@@ -135,7 +126,7 @@ while running:
             #Car deciding how much to accelerate
             car_decides_acceleration = False #If this boolean is change to true, the car will decide by itself the acceleration using output[1] of the car forward pass output. If not, the car will have a fixed acceleration of 3
             car_max_acceleration = 3
-            acceleration_change = car.output[1] * car_max_acceleration if car_decides_acceleration else 3
+            acceleration_change = car.output[1] * car_max_acceleration + 0.5 if car_decides_acceleration else 3
             if acceleration_change <= 0: acceleration_change = 0
             car.y -= math.sin(to_radians) * acceleration_change
             car.x -=  math.cos(to_radians) * acceleration_change
@@ -170,20 +161,8 @@ while running:
         #From front, right rotated ray:
         rrx, rry, rrd = cast_ray(start_x, start_y,dright_stepX,dright_stepY,walls,screen)
         input_neurons_values = [fd,rd,ld,lrd,rrd]
-        #Draw the raycast
-        """
-        pygame.draw.line(screen, "green", (start_x, start_y), (fx,fy))
-        pygame.draw.line(screen, "green", (start_x, start_y), (rx,ry))
-        pygame.draw.line(screen, "green", (start_x, start_y), (lx,ly))
-        pygame.draw.line(screen, "green", (start_x, start_y), (lrx,lry))
-        pygame.draw.line(screen, "green", (start_x, start_y), (rrx,rry))
-        """
         #Now we'll call the forward pass function with the values that changed during the loop
         car.output = forward_pass(input_neurons_values,car.w1,car.w2)
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_s]:
-            print("--------WEIGTHS-------")
-            print("W1: ", car.w1, "W2:", car.w2)
         if cars_crashed == len(cars):
             generation += 1
             cars_crashed = 0

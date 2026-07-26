@@ -24,3 +24,5 @@ def track_A(screen,wall_list):
    draw_wall(screen,"black",1360,200,10,180,wall_list)
    draw_wall(screen,"black",20,45,1570,10,wall_list)
    draw_wall(screen,"black",200,200,1160,10,wall_list)
+
+#You can make your own track using the draw_wall() function.
